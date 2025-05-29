@@ -30,7 +30,8 @@ export const generateResponse = async (
     newChunk: string,
     fullText: string,
     isComplete: boolean
-  ) => void
+  ) => void,
+  maxTokens?: number
 ): Promise<GeminiResponse> => {
   const startTime = performance.now();
 
@@ -52,7 +53,12 @@ export const generateResponse = async (
       contents,
       generationConfig: {
         temperature: shouldUseReducedCapacity ? 0.3 : 0.7,
-        maxOutputTokens: shouldUseReducedCapacity ? 1000 : 4000
+        maxOutputTokens:
+          typeof maxTokens === 'number' && maxTokens > 0
+            ? maxTokens
+            : shouldUseReducedCapacity
+              ? 1000
+              : 4000
       }
     };
 

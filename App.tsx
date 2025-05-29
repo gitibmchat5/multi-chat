@@ -497,6 +497,8 @@ const App: React.FC = () => {
           } : msg
         ));
       }
+      ,
+      currentRole.model.maxTokens
     ).then(response => {
       if (cancelRequestRef.current) {
         setIsDiscussionActive(false);
@@ -619,6 +621,8 @@ const App: React.FC = () => {
           } : msg
         ));
       }
+      ,
+      finalAnswerRole.model.maxTokens
     ).then(finalResponse => {
       if (cancelRequestRef.current) {
         setIsDiscussionActive(false);
@@ -662,6 +666,11 @@ const App: React.FC = () => {
       setIsDiscussionActive(false);
       setCurrentDiscussion(null);
       currentQueryStartTimeRef.current = null;
+      addMessage(
+        '讨论已结束，主人是否有补充建议？如需继续，请回复新的观点；如果没有，请回复“结束”或开始新的话题。',
+        MessageSender.System,
+        MessagePurpose.SystemNotification
+      );
     }).catch(error => {
       console.error("生成最终答案时出错:", error);
       addMessage(`错误: ${error instanceof Error ? error.message : "生成最终答案时发生未知错误"}`, MessageSender.System, MessagePurpose.SystemNotification);
