@@ -153,6 +153,13 @@ export const DEFAULT_ROLES: AiRole[] = [
     modelId: 'gpt-4-mini-default',
     isActive: true
   },
+  {
+    id: 'owner-default',
+    name: 'Owner',
+    systemPrompt: `你是Owner，整场讨论的主人和最终决策者。其他AI在形成阶段性结论后会征询你的意见，只有在你确认没有进一步建议时才会结束讨论。若你提出新的观点，讨论应继续进行。`,
+    modelId: 'gpt-4-mini-default',
+    isActive: false
+  },
 //Sage - 历史智慧型
 {
   id: 'sage-default',
@@ -702,7 +709,7 @@ export class ModelConfigManager {
 }
 
 // 其他常量配置
-export const DEFAULT_MANUAL_FIXED_TURNS = 2;
+export const DEFAULT_MANUAL_FIXED_TURNS = 1;
 export const MIN_MANUAL_FIXED_TURNS = 1;
 export const MAX_MANUAL_FIXED_TURNS = 5;
 export const MAX_AI_DRIVEN_DISCUSSION_TURNS_PER_MODEL = 3;
