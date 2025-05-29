@@ -145,6 +145,7 @@ const App: React.FC = () => {
   const [isRoleSelectorOpen, setIsRoleSelectorOpen] = useState<boolean>(false);
 
   const [isDiscussionActive, setIsDiscussionActive] = useState<boolean>(false);
+  const [awaitingOwnerConfirmation, setAwaitingOwnerConfirmation] = useState<boolean>(false);
   const [streamingMessages, setStreamingMessages] = useState<Map<string, { text: string; isComplete: boolean }>>(new Map());
   const [currentDiscussion, setCurrentDiscussion] = useState<DiscussionState | null>(null);
 
@@ -236,6 +237,7 @@ const App: React.FC = () => {
       cancelRequestRef.current = true;
       setIsLoading(false);
       setIsDiscussionActive(false);
+      setAwaitingOwnerConfirmation(false);
       setCurrentDiscussion(null);
       
       if (currentTotalProcessingTimeMs > 0) {
@@ -361,6 +363,7 @@ const App: React.FC = () => {
     }
     setIsLoading(false);
     setIsDiscussionActive(false);
+    setAwaitingOwnerConfirmation(false);
     setCurrentDiscussion(null);
     
     setCurrentTotalProcessingTimeMs(0);
@@ -662,6 +665,12 @@ const App: React.FC = () => {
       setIsDiscussionActive(false);
       setCurrentDiscussion(null);
       currentQueryStartTimeRef.current = null;
+      addMessage(
+        '讨论已结束，主人是否有补充建议？如需继续，请回复新的观点；如果没有，请回复“结束”或开始新的话题。',
+        MessageSender.System,
+        MessagePurpose.SystemNotification
+      );
+      setAwaitingOwnerConfirmation(true);
     }).catch(error => {
       console.error("生成最终答案时出错:", error);
       addMessage(`错误: ${error instanceof Error ? error.message : "生成最终答案时发生未知错误"}`, MessageSender.System, MessagePurpose.SystemNotification);
@@ -674,6 +683,16 @@ const App: React.FC = () => {
   const handleSendMessage = async (userInput: string, imageFile?: File | null) => {
     if (isLoading) return;
     if (!userInput.trim() && !imageFile) return;
+
+    if (awaitingOwnerConfirmation) {
+      const trimmed = userInput.trim();
+      if (trimmed === '结束' || trimmed === '#1') {
+        addMessage('已结束本次讨论，如需新的讨论请再次输入话题。', MessageSender.System, MessagePurpose.SystemNotification);
+        setAwaitingOwnerConfirmation(false);
+        return;
+      }
+      setAwaitingOwnerConfirmation(false);
+    }
     
     if (channels.length === 0) {
       addMessage("请先配置API渠道。点击设置按钮添加渠道。", MessageSender.System, MessagePurpose.SystemNotification);
