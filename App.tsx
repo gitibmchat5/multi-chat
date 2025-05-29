@@ -5,6 +5,7 @@ import ChatInput from './components/ChatInput';
 import MessageBubble from './components/MessageBubble';
 import Notepad from './components/Notepad';
 import ModelConfigManager from './components/ModelConfigManager';
+import FileManager from './components/FileManager';
 import {
   AiModel,
   AiRole,
@@ -147,6 +148,7 @@ const App: React.FC = () => {
   const [isDiscussionActive, setIsDiscussionActive] = useState<boolean>(false);
   const [streamingMessages, setStreamingMessages] = useState<Map<string, { text: string; isComplete: boolean }>>(new Map());
   const [currentDiscussion, setCurrentDiscussion] = useState<DiscussionState | null>(null);
+  const [awaitingOwnerConfirmation, setAwaitingOwnerConfirmation] = useState<boolean>(false);
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const currentQueryStartTimeRef = useRef<number | null>(null);
@@ -237,6 +239,7 @@ const App: React.FC = () => {
       setIsLoading(false);
       setIsDiscussionActive(false);
       setCurrentDiscussion(null);
+      setAwaitingOwnerConfirmation(false);
       
       if (currentTotalProcessingTimeMs > 0) {
         addMessage(
@@ -362,6 +365,7 @@ const App: React.FC = () => {
     setIsLoading(false);
     setIsDiscussionActive(false);
     setCurrentDiscussion(null);
+    setAwaitingOwnerConfirmation(false);
     
     setCurrentTotalProcessingTimeMs(0);
     if (currentQueryStartTimeRef.current) {
@@ -479,6 +483,7 @@ const App: React.FC = () => {
       state.imageApiPart,
       currentRole.channel.baseUrl,
       currentRole.channel.apiKey,
+      currentRole.model.maxTokens,
       // 关键的流式回调函数
       (newChunk: string, fullText: string, isComplete: boolean) => {
         // newChunk: 本次新接收到的文本块
@@ -609,6 +614,7 @@ const App: React.FC = () => {
       state.imageApiPart,
       finalAnswerRole.channel.baseUrl,
       finalAnswerRole.channel.apiKey,
+      finalAnswerRole.model.maxTokens,
       // 最终答案的流式回调
       (newChunk: string, fullText: string, isComplete: boolean) => {
         setMessages(prev => prev.map(msg => 
@@ -662,6 +668,12 @@ const App: React.FC = () => {
       setIsDiscussionActive(false);
       setCurrentDiscussion(null);
       currentQueryStartTimeRef.current = null;
+      setAwaitingOwnerConfirmation(true);
+      addMessage(
+        '讨论已结束，主人是否有补充建议？如需继续，请回复新的观点；如果没有，请回复“结束”或开始新的话题。',
+        MessageSender.System,
+        MessagePurpose.SystemNotification
+      );
     }).catch(error => {
       console.error("生成最终答案时出错:", error);
       addMessage(`错误: ${error instanceof Error ? error.message : "生成最终答案时发生未知错误"}`, MessageSender.System, MessagePurpose.SystemNotification);
@@ -672,6 +684,16 @@ const App: React.FC = () => {
   };
 
   const handleSendMessage = async (userInput: string, imageFile?: File | null) => {
+    if (awaitingOwnerConfirmation) {
+      const trimmed = userInput.trim();
+      if (trimmed === '结束' || trimmed === '#1') {
+        addMessage('讨论已结束。', MessageSender.System, MessagePurpose.SystemNotification);
+        setAwaitingOwnerConfirmation(false);
+        return;
+      }
+      setAwaitingOwnerConfirmation(false);
+    }
+
     if (isLoading) return;
     if (!userInput.trim() && !imageFile) return;
     
@@ -1005,11 +1027,15 @@ const App: React.FC = () => {
       </header>
 
       <div className="flex flex-row flex-grow overflow-hidden">
-        <div className="flex flex-col w-2/3 md:w-3/5 lg:w-2/3 h-full">
+        <div className="w-1/4 md:w-1/5 lg:w-1/4 h-full">
+          <FileManager />
+        </div>
+
+        <div className="flex flex-col w-1/2 md:w-3/5 lg:w-1/2 h-full">
           <div ref={chatContainerRef} className="flex-grow p-4 space-y-4 overflow-y-auto bg-gray-800 scroll-smooth">
             {messages.map((msg) => {
               const streamingState = streamingMessages.get(msg.id);
-              const displayMessage = streamingState && !streamingState.isComplete 
+              const displayMessage = streamingState && !streamingState.isComplete
                 ? { ...msg, text: streamingState.text }
                 : msg;
               
@@ -1019,7 +1045,7 @@ const App: React.FC = () => {
           <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} isApiKeyMissing={!isSystemReady} />
         </div>
 
-        <div className="w-1/3 md:w-2/5 lg:w-1/3 h-full bg-slate-800">
+        <div className="w-1/4 md:w-1/5 lg:w-1/4 h-full bg-slate-800">
           <Notepad
             content={notepadContent}
             lastUpdatedBy={lastNotepadUpdateBy}

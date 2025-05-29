@@ -26,6 +26,7 @@ export const generateResponse = async (
   imagePart?: { inlineData: { mimeType: string; data: string } },
   customBaseUrl?: string,
   apiKey?: string,
+  maxTokens?: number,
   onStreamChunk?: (
     newChunk: string,
     fullText: string,
@@ -52,7 +53,14 @@ export const generateResponse = async (
       contents,
       generationConfig: {
         temperature: shouldUseReducedCapacity ? 0.3 : 0.7,
-        maxOutputTokens: shouldUseReducedCapacity ? 1000 : 4000
+        maxOutputTokens:
+          typeof maxTokens === 'number'
+            ? shouldUseReducedCapacity
+              ? Math.min(maxTokens, 1000)
+              : maxTokens
+            : shouldUseReducedCapacity
+            ? 1000
+            : 4000
       }
     };
 

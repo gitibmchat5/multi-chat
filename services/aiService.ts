@@ -9,6 +9,7 @@ export const generateResponse = (
   imagePart?: { inlineData: { mimeType: string; data: string } },
   customBaseUrl?: string,
   apiKey?: string,
+  maxTokens?: number,
   onStreamChunk?: (newChunk: string, fullText: string, isComplete: boolean) => void
 ) => {
   const base = (customBaseUrl || '').toLowerCase();
@@ -22,6 +23,7 @@ export const generateResponse = (
       imagePart,
       customBaseUrl,
       apiKey,
+      maxTokens,
       onStreamChunk
     );
   }
@@ -34,6 +36,7 @@ export const generateResponse = (
     imagePart,
     customBaseUrl,
     apiKey,
+    maxTokens,
     onStreamChunk
   );
 };
